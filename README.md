@@ -1,6 +1,25 @@
-# MatchStake - P2P World Cup Betting DApp
+# MatchStake — P2P World Cup Betting DApp
 
-A peer-to-peer betting application on X Layer blockchain where users can bet on World Cup match outcomes.
+![Network](https://img.shields.io/badge/network-X%20Layer%20Testnet-blue)
+![Chain ID](https://img.shields.io/badge/chain--id-195-informational)
+![Solidity](https://img.shields.io/badge/solidity-0.8.24-363636)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+A peer-to-peer betting application on X Layer blockchain where users can bet on World Cup match outcomes. Funds are held in a trustless smart contract escrow — no intermediaries, instant settlement.
+
+## Table of Contents
+
+- [Tech Stack](#-tech-stack)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Setup Instructions](#-setup-instructions)
+- [How to Use](#-how-to-use)
+- [Smart Contract Functions](#-smart-contract-functions)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Events](#-events)
+- [Security Notes](#-security-notes)
+- [Documentation](#-documentation)
 
 ## 🎯 Project Structure
 
@@ -152,21 +171,39 @@ Create a demo showing:
 
 ## 🎉 Features
 
-- ✅ Peer-to-peer betting system
-- ✅ Smart contract escrow
-- ✅ Automatic winner payout
-- ✅ MetaMask integration
-- ✅ Real-time bet updates
-- ✅ Active bet listing
-- ✅ Bet cancellation (pending bets)
-- ✅ Draw handling
+- ✅ Peer-to-peer betting with smart contract escrow
+- ✅ Automatic winner payout (no manual transfers)
+- ✅ Draw support — stakes refunded to both players
+- ✅ Bet cancellation for pending bets
+- ✅ MetaMask wallet integration with auto network switching
+- ✅ Live match schedule from TheSportsDB (with offline fallback)
+- ✅ Player display names — register a username, signed by your wallet
+- ✅ Anonymous labels for unregistered wallets (stable, wallet-derived)
+- ✅ Contract address auto-resolved from deployment files or backend
+- ✅ Real-time bet list updates via on-chain event listeners
+- ✅ Backend profile registry with EIP-191 signature authentication
+
+## 📚 Documentation
+
+| File | Purpose |
+|------|---------|
+| `ARCHITECTURE.md` | System diagrams, data flows, design decisions |
+| `SECURITY.md` | Threat model, known limitations, mainnet checklist |
+| `DEPLOYMENT.md` | Step-by-step deploy + test guide |
+| `DEMO_GUIDE.md` | How to record the submission demo video |
+| `X_STRATEGY.md` | Twitter/X posting templates and schedule |
+| `CHECKLIST.md` | Pre-submission task list |
+| `QUICK_REFERENCE.md` | Commands, troubleshooting, test scenarios |
+| `CONTRIBUTING.md` | How to contribute to the project |
+| `contracts/contracts/README.md` | Full contract function & event reference |
 
 ## 📞 Support
 
 For issues or questions:
-1. Check test contracts for examples
+1. Check `QUICK_REFERENCE.md` for common fixes
 2. Review contract ABI in `frontend/src/config.js`
-3. Check MetaMask network settings
+3. Check MetaMask network settings (Chain ID must be 195)
+4. See `ARCHITECTURE.md` for system-level context
 
 ## 📄 License
 

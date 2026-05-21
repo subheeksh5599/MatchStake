@@ -20,13 +20,23 @@ if (fs.existsSync(envPath)) {
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.24",
+  solidity: {
+    version: "0.8.24",
+    settings: {
+      optimizer: { enabled: true, runs: 200 },
+      viaIR: true,
+    },
+  },
   networks: {
     xlayer: {
       url: "https://testrpc.xlayer.tech",
       chainId: 1952,
-      accounts: process.env.PRIVATE_KEY 
-        ? [process.env.PRIVATE_KEY.trim().startsWith("0x") ? process.env.PRIVATE_KEY.trim() : "0x" + process.env.PRIVATE_KEY.trim()] 
+      accounts: process.env.PRIVATE_KEY
+        ? [
+            process.env.PRIVATE_KEY.trim().startsWith("0x")
+              ? process.env.PRIVATE_KEY.trim()
+              : "0x" + process.env.PRIVATE_KEY.trim(),
+          ]
         : [],
       gasPrice: 1000000000, // 1 Gwei
     },

@@ -7,10 +7,14 @@ let signer;
 let contract;
 
 const normalizeWeb3Error = (error) => {
-  const message = error?.reason || error?.shortMessage || error?.message || "Unknown error";
+  const message =
+    error?.reason || error?.shortMessage || error?.message || "Unknown error";
   const lowered = message.toLowerCase();
 
-  if (lowered.includes("missing revert data") || lowered.includes("call exception")) {
+  if (
+    lowered.includes("missing revert data") ||
+    lowered.includes("call exception")
+  ) {
     return "This address is not a compatible MatchStake contract on the selected network.";
   }
   if (lowered.includes("network")) {
@@ -30,7 +34,7 @@ export const ensureContractConfigured = async () => {
   const addr = await resolveContractAddress();
   if (!addr) {
     throw new Error(
-      "MatchStake contract is not deployed yet. Run: cd contracts && npm run deploy:xlayer"
+      "MatchStake contract is not deployed yet. Run: cd contracts && npm run deploy:xlayer",
     );
   }
   return addr;
@@ -146,10 +150,16 @@ export const initContract = async (contractAddress) => {
   try {
     const code = await getProvider().getCode(trimmedAddress);
     if (!code || code === "0x") {
-      throw new Error("Address is valid but no contract is deployed at this address.");
+      throw new Error(
+        "Address is valid but no contract is deployed at this address.",
+      );
     }
 
-    const nextContract = new ethers.Contract(trimmedAddress, MATCHSTAKE_ABI, signer);
+    const nextContract = new ethers.Contract(
+      trimmedAddress,
+      MATCHSTAKE_ABI,
+      signer,
+    );
     await nextContract.getActiveBets();
 
     CONFIG.CONTRACT_ADDRESS = trimmedAddress;
@@ -165,11 +175,7 @@ export const getContract = () => {
     const contractAddr = getContractAddress();
     if (signer && contractAddr && ethers.isAddress(contractAddr)) {
       try {
-        contract = new ethers.Contract(
-          contractAddr,
-          MATCHSTAKE_ABI,
-          signer
-        );
+        contract = new ethers.Contract(contractAddr, MATCHSTAKE_ABI, signer);
         console.log("On-demand contract initialization succeeded!");
         return contract;
       } catch (e) {
@@ -244,7 +250,7 @@ export const verifyXLayerAndContract = async () => {
         const probe = new ethers.Contract(
           contractAddr,
           MATCHSTAKE_ABI,
-          readProvider
+          readProvider,
         );
         try {
           await probe.getActiveBets();
@@ -259,9 +265,11 @@ export const verifyXLayerAndContract = async () => {
             contract = new ethers.Contract(
               contractAddr,
               MATCHSTAKE_ABI,
-              signer
+              signer,
             );
-            console.log("Automatically initialized contract with signer during verification!");
+            console.log(
+              "Automatically initialized contract with signer during verification!",
+            );
           }
         } else {
           contract = null;
@@ -278,7 +286,13 @@ export const verifyXLayerAndContract = async () => {
     contract = null;
   }
 
-  return { chainId, chainOk, contractDeployed, contractInterfaceOk, contractInterfaceError };
+  return {
+    chainId,
+    chainOk,
+    contractDeployed,
+    contractInterfaceOk,
+    contractInterfaceError,
+  };
 };
 
 export const getContractAdmin = async () => {
@@ -286,7 +300,12 @@ export const getContractAdmin = async () => {
   return await contract.admin();
 };
 
-export const createBet = async (matchName, amountInOKB) => {
+export const createBet = async (
+  matchName,
+  amountInOKB,
+  homeGoals,
+  awayGoals,
+) => {
   try {
     const contract = getContract();
     const amount = Number(amountInOKB);
@@ -295,9 +314,15 @@ export const createBet = async (matchName, amountInOKB) => {
     }
     const amountInWei = ethers.parseEther(amountInOKB.toString());
 
-    const tx = await contract.createBet(matchName, amountInWei, {
-      value: amountInWei,
-    });
+    const tx = await contract.createBet(
+      matchName,
+      amountInWei,
+      homeGoals,
+      awayGoals,
+      {
+        value: amountInWei,
+      },
+    );
 
     const receipt = await tx.wait();
     return receipt;
@@ -307,7 +332,13 @@ export const createBet = async (matchName, amountInOKB) => {
   }
 };
 
-export const joinBet = async (betId, amountInOKB, requiredWei) => {
+export const joinBet = async (
+  betId,
+  amountInOKB,
+  requiredWei,
+  homeGoals,
+  awayGoals,
+) => {
   try {
     const contract = getContract();
     const amount = Number(amountInOKB);
@@ -322,7 +353,7 @@ export const joinBet = async (betId, amountInOKB, requiredWei) => {
       }
     }
 
-    const tx = await contract.joinBet(betId, {
+    const tx = await contract.joinBet(betId, homeGoals, awayGoals, {
       value: amountInWei,
     });
 
@@ -334,10 +365,10 @@ export const joinBet = async (betId, amountInOKB, requiredWei) => {
   }
 };
 
-export const resolveBet = async (betId, outcome) => {
+export const resolveBet = async (betId, actualHome, actualAway) => {
   try {
     const contract = getContract();
-    const tx = await contract.resolveBet(betId, outcome);
+    const tx = await contract.resolveBet(betId, actualHome, actualAway);
     const receipt = await tx.wait();
     return receipt;
   } catch (error) {
@@ -379,6 +410,12 @@ const normalizeBet = (bet) => ({
   outcome: Number(bet.outcome),
   createdAt: bet.createdAt,
   resolvedAt: bet.resolvedAt,
+  creatorHomeGoals: Number(bet.creatorHomeGoals),
+  creatorAwayGoals: Number(bet.creatorAwayGoals),
+  joinerHomeGoals: Number(bet.joinerHomeGoals),
+  joinerAwayGoals: Number(bet.joinerAwayGoals),
+  actualHomeGoals: Number(bet.actualHomeGoals),
+  actualAwayGoals: Number(bet.actualAwayGoals),
 });
 
 export const getActiveBets = async () => {
@@ -419,7 +456,7 @@ export const listenToEvents = (contractAddress, callback) => {
   const contract = new ethers.Contract(
     contractAddress,
     MATCHSTAKE_ABI,
-    getProvider()
+    getProvider(),
   );
 
   contract.on("BetCreated", (betId, matchName, creator, amount, event) => {

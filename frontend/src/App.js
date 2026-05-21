@@ -35,8 +35,7 @@ const OUTCOMES = ["PENDING", "TEAM_A", "TEAM_B", "DRAW"];
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
-const addrEq = (a, b) =>
-  Boolean(a && b && a.toLowerCase() === b.toLowerCase());
+const addrEq = (a, b) => Boolean(a && b && a.toLowerCase() === b.toLowerCase());
 
 function App() {
   const [usernameInput, setUsernameInput] = useState("");
@@ -59,8 +58,13 @@ function App() {
   const [message, setMessage] = useState("");
 
   const [createAmount, setCreateAmount] = useState("");
+  const [createHomeGoals, setCreateHomeGoals] = useState("");
+  const [createAwayGoals, setCreateAwayGoals] = useState("");
   const [joinAmount, setJoinAmount] = useState("");
+  const [joinHomeGoals, setJoinHomeGoals] = useState("");
+  const [joinAwayGoals, setJoinAwayGoals] = useState("");
   const [selectedBetId, setSelectedBetId] = useState("");
+  const [resolveInputs, setResolveInputs] = useState({});
 
   const [verify, setVerify] = useState({
     chainId: null,
@@ -80,9 +84,7 @@ function App() {
 
   const isContractReady = contractReady && isContractAddressConfigured();
   const isContractAdmin =
-    contractAdmin &&
-    userAddress &&
-    addrEq(contractAdmin, userAddress);
+    contractAdmin && userAddress && addrEq(contractAdmin, userAddress);
   const myDisplayName =
     (userAddress && getUsernameForWallet(userAddress)) || username || "";
 
@@ -101,9 +103,9 @@ function App() {
         (bet) =>
           bet.status === 0 &&
           addrEq(bet.teamBBetter, ZERO) &&
-          !addrEq(bet.teamABetter, userAddress)
+          !addrEq(bet.teamABetter, userAddress),
       ),
-    [betsForSelectedMatch, userAddress]
+    [betsForSelectedMatch, userAddress],
   );
 
   const runVerification = useCallback(async () => {
@@ -159,7 +161,7 @@ function App() {
       } else {
         setContractReady(false);
         setContractLoadError(
-          "Deploy MatchStake: add PRIVATE_KEY to contracts/.env, then run cd contracts && npm run deploy:xlayer. Use X Layer testnet chain ID 1952 in MetaMask."
+          "Deploy MatchStake: add PRIVATE_KEY to contracts/.env, then run cd contracts && npm run deploy:xlayer. Use X Layer testnet chain ID 1952 in MetaMask.",
         );
       }
     })();
@@ -168,7 +170,7 @@ function App() {
   useEffect(() => {
     if (!selectedBetId) return;
     const bet = openBetsOnMatch.find(
-      (b) => b.betId.toString() === String(selectedBetId)
+      (b) => b.betId.toString() === String(selectedBetId),
     );
     if (bet) {
       try {
@@ -273,7 +275,7 @@ function App() {
     const onAccounts = (accounts) => {
       const currentAddr = userAddressRef.current || "";
       const newAddr = accounts[0] || "";
-      
+
       // Only reload if we were already connected to an account,
       // and we are switching to a different active account.
       if (
@@ -303,8 +305,6 @@ function App() {
     };
   }, [walletConnected, runVerification, refreshBets, refreshBalance]);
 
-
-
   const handleSwitchNetwork = async () => {
     try {
       setLoading(true);
@@ -322,11 +322,15 @@ function App() {
   const handleOnboardingConfirm = async () => {
     const name = usernameInput.trim();
     if (!name || !/^[a-zA-Z0-9_]{2,24}$/.test(name)) {
-      setMessage("Please enter a valid display name (2-24 characters, letters/numbers/underscore).");
+      setMessage(
+        "Please enter a valid display name (2-24 characters, letters/numbers/underscore).",
+      );
       return;
     }
     if (!walletConnected || !verify.chainOk) {
-      setMessage("Please connect your wallet and switch to the X Layer Testnet.");
+      setMessage(
+        "Please connect your wallet and switch to the X Layer Testnet.",
+      );
       return;
     }
     setLoading(true);
@@ -340,7 +344,10 @@ function App() {
       setIsOnboarded(true);
       setMessage("Welcome to MatchStake!");
     } catch (error) {
-      console.warn("Could not register on server, proceeding with local profile:", error);
+      console.warn(
+        "Could not register on server, proceeding with local profile:",
+        error,
+      );
       sessionStorage.setItem("matchstake_onboarded", "true");
       setIsOnboarded(true);
       setMessage("Welcome to MatchStake! (Local Session)");
@@ -373,7 +380,8 @@ function App() {
         }
       }
       setMessage("Wallet connected.");
-      const nameToPublish = getUsernameForWallet(address) || getStoredUsername();
+      const nameToPublish =
+        getUsernameForWallet(address) || getStoredUsername();
       if (nameToPublish && /^[a-zA-Z0-9_]{2,24}$/.test(nameToPublish)) {
         try {
           await registerProfileOnServer(address, nameToPublish);
@@ -421,7 +429,7 @@ function App() {
     if (!isContractReady) {
       setMessage(
         contractLoadError ||
-          "Contract not available. Deploy MatchStake to X Layer first."
+          "Contract not available. Deploy MatchStake to X Layer first.",
       );
       return false;
     }
@@ -439,11 +447,19 @@ function App() {
         setMessage("Enter a stake amount greater than 0.");
         return;
       }
+      const home = parseInt(createHomeGoals, 10);
+      const away = parseInt(createAwayGoals, 10);
+      if (isNaN(home) || home < 0 || isNaN(away) || away < 0) {
+        setMessage("Enter a valid score prediction — e.g. 2 and 1.");
+        return;
+      }
       setLoading(true);
       setMessage("Creating stake...");
-      await createBet(selectedMatch.name, createAmount);
+      await createBet(selectedMatch.name, createAmount, home, away);
       setMessage("Stake created. Waiting for an opponent to join.");
       setCreateAmount("");
+      setCreateHomeGoals("");
+      setCreateAwayGoals("");
       await refreshBets();
       await refreshBalance();
     } catch (error) {
@@ -461,18 +477,32 @@ function App() {
         return;
       }
       const bet = openBetsOnMatch.find(
-        (b) => b.betId.toString() === String(selectedBetId)
+        (b) => b.betId.toString() === String(selectedBetId),
       );
       if (!bet) {
         setMessage("This stake is no longer available.");
         return;
       }
+      const home = parseInt(joinHomeGoals, 10);
+      const away = parseInt(joinAwayGoals, 10);
+      if (isNaN(home) || home < 0 || isNaN(away) || away < 0) {
+        setMessage("Enter your score prediction — e.g. 1 and 2.");
+        return;
+      }
       setLoading(true);
       setMessage("Joining stake...");
-      await joinBet(parseInt(selectedBetId, 10), joinAmount, bet.amount);
+      await joinBet(
+        parseInt(selectedBetId, 10),
+        joinAmount,
+        bet.amount,
+        home,
+        away,
+      );
       setMessage("You joined the stake. Good luck.");
       setSelectedBetId("");
       setJoinAmount("");
+      setJoinHomeGoals("");
+      setJoinAwayGoals("");
       await refreshBets();
       await refreshBalance();
     } catch (error) {
@@ -482,11 +512,11 @@ function App() {
     }
   };
 
-  const handleResolveBet = async (betId, outcome) => {
+  const handleResolveBet = async (betId, actualHome, actualAway) => {
     try {
       setLoading(true);
       setMessage("Resolving...");
-      await resolveBet(betId, outcome);
+      await resolveBet(betId, actualHome, actualAway);
       setMessage("Stake resolved.");
       await refreshBets();
     } catch (error) {
@@ -523,7 +553,7 @@ function App() {
     verify.chainOk && verify.contractDeployed && verify.contractInterfaceOk;
 
   const isUsernameLocked = Boolean(
-    username || (userAddress && getUsernameForWallet(userAddress))
+    username || (userAddress && getUsernameForWallet(userAddress)),
   );
 
   if (!isOnboarded) {
@@ -540,11 +570,12 @@ function App() {
         <div className="onboarding-gate">
           <div className="onboarding-card">
             <h2>Enter the Arena</h2>
-            
+
             <div className="onboarding-step">
               <label className="step-label">Step 1: Choose Display Name</label>
               <p className="step-desc">
-                Your opponents will see this display name instead of your raw wallet address.
+                Your opponents will see this display name instead of your raw
+                wallet address.
               </p>
               <div className="form-group">
                 <input
@@ -564,10 +595,15 @@ function App() {
             </div>
 
             <div className="onboarding-step">
-              <label className="step-label">Step 2: Connect Wallet & Network</label>
+              <label className="step-label">
+                Step 2: Connect Wallet & Network
+              </label>
               {!walletConnected ? (
                 <div>
-                  <p className="step-desc">Connect your MetaMask wallet to interact with on-chain stakes.</p>
+                  <p className="step-desc">
+                    Connect your MetaMask wallet to interact with on-chain
+                    stakes.
+                  </p>
                   <button
                     type="button"
                     className="btn-full"
@@ -581,7 +617,9 @@ function App() {
                 <div className="wallet-status-box">
                   <div className="wallet-row">
                     <span className="text-muted">Detected Address:</span>
-                    <strong className="wallet-address">{userAddress.slice(0, 6)}...{userAddress.slice(-4)}</strong>
+                    <strong className="wallet-address">
+                      {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
+                    </strong>
                   </div>
                   <div className="wallet-row">
                     <span className="text-muted">Balance:</span>
@@ -603,35 +641,93 @@ function App() {
                         <div className="network-pill-ok">
                           Network: X Layer Testnet
                         </div>
-                        <div className="onboarding-contract-status" style={{ marginTop: "12px", borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "8px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "4px" }}>
-                            <span className="text-muted">Contract Address:</span>
-                            <span style={{ color: "#fff", fontFamily: "monospace" }}>{getContractAddress() ? `${getContractAddress().slice(0, 6)}...${getContractAddress().slice(-4)}` : "None"}</span>
+                        <div
+                          className="onboarding-contract-status"
+                          style={{
+                            marginTop: "12px",
+                            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+                            paddingTop: "8px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "0.85rem",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            <span className="text-muted">
+                              Contract Address:
+                            </span>
+                            <span
+                              style={{ color: "#fff", fontFamily: "monospace" }}
+                            >
+                              {getContractAddress()
+                                ? `${getContractAddress().slice(0, 6)}...${getContractAddress().slice(-4)}`
+                                : "None"}
+                            </span>
                           </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "0.85rem",
+                              marginBottom: "4px",
+                            }}
+                          >
                             <span className="text-muted">Bytecode:</span>
-                            <span>{verify.contractDeployed ? <strong style={{ color: "#10b981" }}>Deployed</strong> : <strong style={{ color: "#ef4444" }}>Missing</strong>}</span>
+                            <span>
+                              {verify.contractDeployed ? (
+                                <strong style={{ color: "#10b981" }}>
+                                  Deployed
+                                </strong>
+                              ) : (
+                                <strong style={{ color: "#ef4444" }}>
+                                  Missing
+                                </strong>
+                              )}
+                            </span>
                           </div>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "0.85rem",
+                            }}
+                          >
                             <span className="text-muted">Interface Check:</span>
-                            <span>{verify.contractInterfaceOk ? <strong style={{ color: "#10b981" }}>Passed</strong> : <strong style={{ color: "#ef4444" }}>Failed</strong>}</span>
+                            <span>
+                              {verify.contractInterfaceOk ? (
+                                <strong style={{ color: "#10b981" }}>
+                                  Passed
+                                </strong>
+                              ) : (
+                                <strong style={{ color: "#ef4444" }}>
+                                  Failed
+                                </strong>
+                              )}
+                            </span>
                           </div>
-                          {!verify.contractInterfaceOk && verify.contractInterfaceError && (
-                            <div style={{
-                              marginTop: "8px",
-                              padding: "8px 12px",
-                              background: "rgba(220, 38, 38, 0.1)",
-                              border: "1px solid rgba(220, 38, 38, 0.3)",
-                              borderRadius: "6px",
-                              fontFamily: "monospace",
-                              fontSize: "0.75rem",
-                              color: "#fca5a5",
-                              wordBreak: "break-all",
-                              textAlign: "left"
-                            }}>
-                              Error: {verify.contractInterfaceError}
-                            </div>
-                          )}
+                          {!verify.contractInterfaceOk &&
+                            verify.contractInterfaceError && (
+                              <div
+                                style={{
+                                  marginTop: "8px",
+                                  padding: "8px 12px",
+                                  background: "rgba(220, 38, 38, 0.1)",
+                                  border: "1px solid rgba(220, 38, 38, 0.3)",
+                                  borderRadius: "6px",
+                                  fontFamily: "monospace",
+                                  fontSize: "0.75rem",
+                                  color: "#fca5a5",
+                                  wordBreak: "break-all",
+                                  textAlign: "left",
+                                }}
+                              >
+                                Error: {verify.contractInterfaceError}
+                              </div>
+                            )}
                         </div>
                       </>
                     ) : (
@@ -669,10 +765,12 @@ function App() {
               >
                 {loading ? "Entering..." : "Confirm & Enter DApp"}
               </button>
-              
-              {(!usernameInput.trim() || !/^[a-zA-Z0-9_]{2,24}$/.test(usernameInput.trim())) && (
+
+              {(!usernameInput.trim() ||
+                !/^[a-zA-Z0-9_]{2,24}$/.test(usernameInput.trim())) && (
                 <p className="onboarding-helper-text text-warning">
-                  Please enter a valid display name (2-24 characters, letters/numbers/underscore).
+                  Please enter a valid display name (2-24 characters,
+                  letters/numbers/underscore).
                 </p>
               )}
               {walletConnected && !verify.chainOk && (
@@ -725,10 +823,12 @@ function App() {
       <header className="header">
         <div className="header-top-bar">
           <h1>MatchStake</h1>
-          
+
           <div className="header-profile-pill">
             <div className="profile-info">
-              <span className="profile-name">{myDisplayName || "Anonymous"}</span>
+              <span className="profile-name">
+                {myDisplayName || "Anonymous"}
+              </span>
               {userAddress && (
                 <span className="profile-wallet text-muted">
                   {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
@@ -771,15 +871,15 @@ function App() {
           {contractLoadError || (
             <>
               Run <code>cd contracts && npm run deploy:xlayer</code> (set{" "}
-              <code>PRIVATE_KEY</code> in <code>contracts/.env</code>), then restart
-              the frontend. Address is written to{" "}
+              <code>PRIVATE_KEY</code> in <code>contracts/.env</code>), then
+              restart the frontend. Address is written to{" "}
               <code>frontend/public/contract-address.json</code> automatically.
             </>
           )}
           {getContractAddress() ? (
             <p className="banner-sub">
-              Last known address in config: <code>{getContractAddress()}</code> — not
-              verified on this network yet.
+              Last known address in config: <code>{getContractAddress()}</code>{" "}
+              — not verified on this network yet.
             </p>
           ) : null}
         </div>
@@ -787,9 +887,7 @@ function App() {
 
       {walletConnected && (
         <div
-          className={`banner ${
-            xLayerReady ? "banner-success" : "banner-warn"
-          }`}
+          className={`banner ${xLayerReady ? "banner-success" : "banner-warn"}`}
         >
           <div className="banner-title">On-chain status</div>
           <ul className="banner-list">
@@ -833,19 +931,23 @@ function App() {
                 "getActiveBets OK — X Layer MatchStake in use"
               ) : (
                 <>
-                  <span className="text-warning">could not call getActiveBets — wrong address or ABI</span>
+                  <span className="text-warning">
+                    could not call getActiveBets — wrong address or ABI
+                  </span>
                   {verify.contractInterfaceError && (
-                    <div style={{
-                      marginTop: "6px",
-                      padding: "8px 12px",
-                      background: "rgba(220, 38, 38, 0.1)",
-                      border: "1px solid rgba(220, 38, 38, 0.3)",
-                      borderRadius: "6px",
-                      fontFamily: "monospace",
-                      fontSize: "0.85rem",
-                      color: "#fca5a5",
-                      wordBreak: "break-all"
-                    }}>
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        padding: "8px 12px",
+                        background: "rgba(220, 38, 38, 0.1)",
+                        border: "1px solid rgba(220, 38, 38, 0.3)",
+                        borderRadius: "6px",
+                        fontFamily: "monospace",
+                        fontSize: "0.85rem",
+                        color: "#fca5a5",
+                        wordBreak: "break-all",
+                      }}
+                    >
                       Error details: {verify.contractInterfaceError}
                     </div>
                   )}
@@ -924,7 +1026,7 @@ function App() {
                   (b) =>
                     (b.status === 0 || b.status === 1) &&
                     (addrEq(b.teamABetter, userAddress) ||
-                      addrEq(b.teamBBetter, userAddress))
+                      addrEq(b.teamBBetter, userAddress)),
                 ).length
               }
             </span>
@@ -966,7 +1068,58 @@ function App() {
 
           <div className="sub-block">
             <h3>Open a stake</h3>
+            <p className="section-note">
+              Predict the final score. Whoever’s prediction is closer to the
+              actual result wins. Equal distance → draw, both refunded.
+            </p>
             <div className="form-group">
+              <label
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--text-muted, #aaa)",
+                  marginBottom: "4px",
+                }}
+              >
+                Your score prediction (home – away)
+              </label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                }}
+              >
+                <input
+                  type="number"
+                  placeholder="Home"
+                  value={createHomeGoals}
+                  onChange={(e) => setCreateHomeGoals(e.target.value)}
+                  disabled={loading}
+                  min="0"
+                  max="20"
+                  style={{ width: "72px" }}
+                />
+                <span
+                  style={{
+                    fontSize: "1.2rem",
+                    fontWeight: "bold",
+                    color: "#fff",
+                  }}
+                >
+                  –
+                </span>
+                <input
+                  type="number"
+                  placeholder="Away"
+                  value={createAwayGoals}
+                  onChange={(e) => setCreateAwayGoals(e.target.value)}
+                  disabled={loading}
+                  min="0"
+                  max="20"
+                  style={{ width: "72px" }}
+                />
+              </div>
               <input
                 type="number"
                 placeholder="Amount (OKB)"
@@ -976,7 +1129,11 @@ function App() {
                 min="0"
                 step="0.01"
               />
-              <button type="button" onClick={handleCreateBet} disabled={loading}>
+              <button
+                type="button"
+                onClick={handleCreateBet}
+                disabled={loading}
+              >
                 {loading ? "Submitting…" : "Create stake"}
               </button>
             </div>
@@ -985,6 +1142,53 @@ function App() {
           <div className="sub-block">
             <h3>Join a stake</h3>
             <div className="form-group">
+              <label
+                style={{
+                  fontSize: "0.85rem",
+                  color: "var(--text-muted, #aaa)",
+                  marginBottom: "4px",
+                }}
+              >
+                Your score prediction (home – away)
+              </label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                }}
+              >
+                <input
+                  type="number"
+                  placeholder="Home"
+                  value={joinHomeGoals}
+                  onChange={(e) => setJoinHomeGoals(e.target.value)}
+                  disabled={loading}
+                  min="0"
+                  max="20"
+                  style={{ width: "72px" }}
+                />
+                <span
+                  style={{
+                    fontSize: "1.2rem",
+                    fontWeight: "bold",
+                    color: "#fff",
+                  }}
+                >
+                  –
+                </span>
+                <input
+                  type="number"
+                  placeholder="Away"
+                  value={joinAwayGoals}
+                  onChange={(e) => setJoinAwayGoals(e.target.value)}
+                  disabled={loading}
+                  min="0"
+                  max="20"
+                  style={{ width: "72px" }}
+                />
+              </div>
               <select
                 value={selectedBetId}
                 onChange={(e) => setSelectedBetId(e.target.value)}
@@ -998,9 +1202,9 @@ function App() {
                       userAddress,
                       bet.teamABetter,
                       myDisplayName,
-                      serverProfiles
+                      serverProfiles,
                     )}{" "}
-                    (side A)
+                    predicts {bet.creatorHomeGoals}–{bet.creatorAwayGoals}
                   </option>
                 ))}
               </select>
@@ -1046,32 +1250,52 @@ function App() {
                         <strong>Status:</strong>{" "}
                         {BET_STATUS[Number(bet.status)] ?? "UNKNOWN"}
                       </p>
-                      {!addrEq(bet.teamBBetter, ZERO) && (
-                        <p>
-                          <strong>Outcome:</strong>{" "}
-                          {OUTCOMES[Number(bet.outcome)] ?? "UNKNOWN"}
-                        </p>
-                      )}
                       <p>
-                        <strong>Side A:</strong>{" "}
+                        <strong>Side A (creator):</strong>{" "}
                         {getDisplayNameForAddress(
                           userAddress,
                           bet.teamABetter,
                           myDisplayName,
-                          serverProfiles
+                          serverProfiles,
                         )}
+                        {" — predicts "}
+                        <strong>
+                          {bet.creatorHomeGoals}–{bet.creatorAwayGoals}
+                        </strong>
                       </p>
                       <p>
-                        <strong>Side B:</strong>{" "}
-                        {addrEq(bet.teamBBetter, ZERO)
-                          ? "Waiting for opponent"
-                          : getDisplayNameForAddress(
+                        <strong>Side B (joiner):</strong>{" "}
+                        {addrEq(bet.teamBBetter, ZERO) ? (
+                          <em>Waiting for opponent…</em>
+                        ) : (
+                          <>
+                            {getDisplayNameForAddress(
                               userAddress,
                               bet.teamBBetter,
                               myDisplayName,
-                              serverProfiles
+                              serverProfiles,
                             )}
+                            {" — predicts "}
+                            <strong>
+                              {bet.joinerHomeGoals}–{bet.joinerAwayGoals}
+                            </strong>
+                          </>
+                        )}
                       </p>
+                      {bet.status === 2 && (
+                        <p>
+                          <strong>Actual score:</strong>{" "}
+                          <strong style={{ color: "#10b981" }}>
+                            {bet.actualHomeGoals}–{bet.actualAwayGoals}
+                          </strong>
+                          {" — "}
+                          {bet.outcome === 1
+                            ? `${getDisplayNameForAddress(userAddress, bet.teamABetter, myDisplayName, serverProfiles)} wins`
+                            : bet.outcome === 2
+                              ? `${getDisplayNameForAddress(userAddress, bet.teamBBetter, myDisplayName, serverProfiles)} wins`
+                              : "Draw — both refunded"}
+                        </p>
+                      )}
                     </div>
 
                     <div className="bet-actions">
@@ -1086,30 +1310,93 @@ function App() {
                           </button>
                         )}
                       {bet.status === 1 && isContractAdmin && (
-                        <div className="resolve-buttons">
+                        <div className="resolve-form">
+                          <p
+                            style={{
+                              fontSize: "0.85rem",
+                              color: "var(--text-muted, #aaa)",
+                              marginBottom: "6px",
+                            }}
+                          >
+                            Enter the actual final score to settle:
+                          </p>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              marginBottom: "8px",
+                            }}
+                          >
+                            <input
+                              type="number"
+                              placeholder="Home"
+                              value={resolveInputs[bet.betId]?.home ?? ""}
+                              onChange={(e) =>
+                                setResolveInputs((prev) => ({
+                                  ...prev,
+                                  [bet.betId]: {
+                                    ...prev[bet.betId],
+                                    home: e.target.value,
+                                  },
+                                }))
+                              }
+                              disabled={loading}
+                              min="0"
+                              max="20"
+                              style={{ width: "72px" }}
+                            />
+                            <span
+                              style={{
+                                fontSize: "1.2rem",
+                                fontWeight: "bold",
+                                color: "#fff",
+                              }}
+                            >
+                              –
+                            </span>
+                            <input
+                              type="number"
+                              placeholder="Away"
+                              value={resolveInputs[bet.betId]?.away ?? ""}
+                              onChange={(e) =>
+                                setResolveInputs((prev) => ({
+                                  ...prev,
+                                  [bet.betId]: {
+                                    ...prev[bet.betId],
+                                    away: e.target.value,
+                                  },
+                                }))
+                              }
+                              disabled={loading}
+                              min="0"
+                              max="20"
+                              style={{ width: "72px" }}
+                            />
+                          </div>
                           <button
                             type="button"
                             className="btn-admin"
-                            onClick={() => handleResolveBet(bet.betId, 1)}
+                            onClick={() => {
+                              const h = parseInt(
+                                resolveInputs[bet.betId]?.home,
+                                10,
+                              );
+                              const a = parseInt(
+                                resolveInputs[bet.betId]?.away,
+                                10,
+                              );
+                              if (isNaN(h) || h < 0 || isNaN(a) || a < 0) {
+                                setMessage(
+                                  "Enter a valid score before settling.",
+                                );
+                                return;
+                              }
+                              handleResolveBet(bet.betId, h, a);
+                            }}
                             disabled={loading}
                           >
-                            Team A wins
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-admin"
-                            onClick={() => handleResolveBet(bet.betId, 2)}
-                            disabled={loading}
-                          >
-                            Team B wins
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-admin"
-                            onClick={() => handleResolveBet(bet.betId, 3)}
-                            disabled={loading}
-                          >
-                            Draw
+                            Settle with this score
                           </button>
                         </div>
                       )}
@@ -1164,9 +1451,7 @@ function App() {
       )}
 
       <footer className="footer">
-        <p>
-          MatchStake hackathon demo · X Layer · Profile API on port 3001
-        </p>
+        <p>MatchStake hackathon demo · X Layer · Profile API on port 3001</p>
       </footer>
     </div>
   );
