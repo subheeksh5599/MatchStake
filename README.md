@@ -160,14 +160,7 @@ The contract emits the following events:
 - Verify contract address before interactions
 - Only use testnet tokens
 
-## 📱 Demo Video
 
-Create a demo showing:
-1. Two MetaMask wallets connecting
-2. User A creating a bet
-3. User B joining the bet
-4. Admin resolving the bet
-5. Winner receiving funds
 
 ## 🎉 Features
 

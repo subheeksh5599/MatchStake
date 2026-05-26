@@ -499,7 +499,6 @@ function App() {
         away,
       );
       setMessage("You joined the stake. Good luck.");
-      setSelectedBetId("");
       setJoinAmount("");
       setJoinHomeGoals("");
       setJoinAwayGoals("");
