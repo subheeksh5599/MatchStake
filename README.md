@@ -9,17 +9,17 @@ A peer-to-peer betting application on X Layer blockchain where users can bet on 
 
 ## Table of Contents
 
-- [Tech Stack](#-tech-stack)
-- [Features](#-features)
-- [Project Structure](#-project-structure)
-- [Setup Instructions](#-setup-instructions)
-- [How to Use](#-how-to-use)
-- [Smart Contract Functions](#-smart-contract-functions)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [Events](#-events)
-- [Security Notes](#-security-notes)
-- [Documentation](#-documentation)
+- [Tech Stack](#tech-stack)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Setup Instructions](#setup-instructions)
+- [How to Use](#how-to-use)
+- [Smart Contract Functions](#smart-contract-functions)
+- [Testing](#testing)
+- [Contract on X Layer Explorer](#contract-on-x-layer-explorer)
+- [Events](#events)
+- [Security Notes](#security-notes)
+- [Decentralization Roadmap](#decentralization-roadmap)
 
 ## 🎯 Project Structure
 
@@ -93,16 +93,6 @@ The app will open at `http://localhost:3000`
 
 ## 🎮 How to Use
 
-### Demo Video
-**⏰ Record before deadline (May 28, 23:59 UTC):**
-1. Connect wallet → Create bet with score prediction
-2. Switch accounts in MetaMask
-3. Join bet with different score prediction
-4. Admin resolves with actual score
-5. Winner receives automatic payout
-
-*Upload to YouTube/Loom and add link here before submission.*
-
 ### Creating a Bet
 1. Connect your MetaMask wallet to X Layer testnet
 2. Select a match from the live fixtures
@@ -117,11 +107,13 @@ The app will open at `http://localhost:3000`
 4. The amount is auto-filled to match the original bet
 5. Click "Join stake"
 
-### Resolving a Bet (Admin Only - MVP Limitation)
+### Resolving a Bet
 1. After the match ends, admin enters the actual final score
 2. Contract calculates Manhattan distance for both predictions
 3. Closest prediction wins the full pot (2x stake)
 4. Equal distances result in a draw — both players refunded
+
+**Note:** Resolution is currently admin-only. See the Decentralization Roadmap section for planned improvements.
 
 ## 📝 Smart Contract Functions
 
@@ -157,13 +149,7 @@ npm test
 - **Network:** X Layer Testnet (Chain ID: 1952)
 - **Explorer:** [View on X Layer Testnet Explorer](https://www.okx.com/explorer/xlayer-test/address/0x85C2dB87F93827a057838b788D28B89dA4fD8c19)
 
-## 🚀 Deployment
-
-After deploying to X Layer testnet, update the frontend with the contract address:
-1. Copy the contract address from `contracts/deployment.json`
-2. In the frontend, enter it in the "Contract Setup" section
-
-## 📊 Events
+## � Eventsm
 
 The contract emits the following events:
 - `BetCreated`: When a new bet is created
@@ -180,83 +166,41 @@ The contract emits the following events:
 
 ## ⚠️ Decentralization Roadmap
 
-**Current limitation:** The `resolveBet()` function is admin-only, which creates a centralization point. This is a hackathon MVP limitation.
+The `resolveBet()` function is currently admin-only, creating a centralization point. This is an MVP limitation with a clear path to full decentralization:
 
-**Production path:** Replace admin resolution with:
-- **Chainlink Sports Data Oracle** for automated, trustless match result feeds
-- **Crowd-sourced attestation** where multiple validators must agree on results
-- **Time-locked dispute mechanism** allowing challenges before final settlement
+**Planned improvements:**
+- **Chainlink Sports Data Oracle** — Automated, trustless match result feeds
+- **Crowd-sourced attestation** — Multiple validators must agree on results
+- **Time-locked dispute mechanism** — Challenge period before final settlement
 
-The core escrow and payout logic is fully decentralized — only the result input currently requires trust.
+The core escrow and payout logic is fully decentralized. Only the result input currently requires a trusted party.
 
 ## 🎉 Features
 
 ### Core Betting Mechanics
-- ✅ Peer-to-peer betting with smart contract escrow
-- ✅ **Score prediction system** — closest prediction wins (Manhattan distance algorithm)
-- ✅ Automatic winner payout (no manual transfers)
-- ✅ Draw support — equal distance predictions refund both players
-- ✅ Bet cancellation for pending bets
+- Peer-to-peer betting with smart contract escrow
+- Score prediction system with Manhattan distance algorithm
+- Automatic winner payout
+- Draw support with equal distance refunds
+- Bet cancellation for pending bets
 
 ### Web3 Integration
-- ✅ MetaMask wallet integration with auto network switching
-- ✅ Real-time bet list updates via on-chain event listeners
-- ✅ Contract address auto-resolved from deployment files or backend
+- MetaMask wallet integration with auto network switching
+- Real-time bet list updates via on-chain event listeners
+- Contract address auto-resolved from deployment files
 
 ### User Experience
-- ✅ Live match schedule from TheSportsDB (with offline fallback)
-- ✅ **Player display names** — register a username, signed by your wallet
-- ✅ Anonymous labels for unregistered wallets (stable, wallet-derived)
-- ✅ Backend profile registry with EIP-191 signature authentication
+- Live match schedule from TheSportsDB API with offline fallback
+- Player display names with wallet-bound usernames
+- Anonymous labels for unregistered wallets
+- Backend profile registry with EIP-191 signature authentication
 
 ### Novel Differentiators
-- 🎯 **Score prediction betting** — not just win/lose/draw, predict exact scores
-- 🏆 **Manhattan distance algorithm** — fair, mathematical winner determination
-- 👤 **Wallet-bound usernames** — social layer without compromising decentralization
-- 📊 **Live match data integration** — real fixtures, not dummy data
+- Score prediction betting with exact score forecasts
+- Manhattan distance algorithm for fair winner determination
+- Wallet-bound usernames for social features
+- Live match data from TheSportsDB API
 
-## 📚 Documentation
-
-| File | Purpose |
-|------|---------|
-| `ARCHITECTURE.md` | System diagrams, data flows, design decisions |
-| `SECURITY.md` | Threat model, known limitations, mainnet checklist |
-| `DEPLOYMENT.md` | Step-by-step deploy + test guide |
-| `DEMO_GUIDE.md` | How to record the submission demo video |
-| `X_STRATEGY.md` | Twitter/X posting templates and schedule |
-| `CHECKLIST.md` | Pre-submission task list |
-| `QUICK_REFERENCE.md` | Commands, troubleshooting, test scenarios |
-| `CONTRIBUTING.md` | How to contribute to the project |
-| `contracts/contracts/README.md` | Full contract function & event reference |
-
-## 📞 Support
-
-For issues or questions:
-1. Check `QUICK_REFERENCE.md` for common fixes
-2. Review contract ABI in `frontend/src/config.js`
-3. Check MetaMask network settings (Chain ID must be 195)
-4. See `ARCHITECTURE.md` for system-level context
-
-## 🚀 Future Enhancements (Post-Hackathon)
-
-### Decentralization
-- **Chainlink Sports Data Oracle** — Replace admin resolution with automated, trustless result feeds
-- **Multi-signature resolution** — Require 3+ validators to agree on match results
-- **Time-locked disputes** — Allow 24-hour challenge period before final settlement
-
-### Novel Features
-- **NFT-gated premium bets** — Exclusive high-stakes rooms for NFT holders
-- **Social wager sharing** — Share your open bets on Twitter/Farcaster to find opponents
-- **Prediction leaderboard** — Track most accurate predictors across all matches
-- **AI-suggested odds** — Machine learning model suggests fair odds based on team stats
-- **Parlay bets** — Combine multiple match predictions for higher payouts
-- **Live betting** — In-game score predictions with dynamic odds
-
-### Technical Improvements
-- **Layer 2 gas optimization** — Batch bet resolutions to reduce costs
-- **IPFS metadata storage** — Store match details and predictions off-chain
-- **Mobile app** — Native iOS/Android with WalletConnect integration
-
-## 📄 License
+## � License
 
 MIT
