@@ -168,10 +168,7 @@ The contract emits the following events:
 
 The `resolveBet()` function is currently admin-only, creating a centralization point. This is an MVP limitation with a clear path to full decentralization:
 
-**Planned improvements:**
-- **Chainlink Sports Data Oracle** — Automated, trustless match result feeds
-- **Crowd-sourced attestation** — Multiple validators must agree on results
-- **Time-locked dispute mechanism** — Challenge period before final settlement
+
 
 The core escrow and payout logic is fully decentralized. Only the result input currently requires a trusted party.
 
