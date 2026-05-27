@@ -178,6 +178,10 @@ function App() {
       } catch {
         /* ignore */
       }
+    } else {
+      // If the selected bet is no longer available, clear the selection
+      setSelectedBetId("");
+      setJoinAmount("");
     }
   }, [selectedBetId, openBetsOnMatch]);
 
@@ -412,8 +416,7 @@ function App() {
 
   const handleSelectMatch = (m) => {
     setSelectedMatch(m);
-    setSelectedBetId("");
-    setJoinAmount("");
+    // Don't reset selectedBetId here - let it persist if the bet is still valid
     setMessage("");
   };
 
