@@ -59,10 +59,6 @@ function App() {
   const [createAmount, setCreateAmount] = useState("");
   const [createHomeGoals, setCreateHomeGoals] = useState("");
   const [createAwayGoals, setCreateAwayGoals] = useState("");
-  const [joinAmount, setJoinAmount] = useState("");
-  const [joinHomeGoals, setJoinHomeGoals] = useState("");
-  const [joinAwayGoals, setJoinAwayGoals] = useState("");
-  const [selectedBetId, setSelectedBetId] = useState("");
   const [resolveInputs, setResolveInputs] = useState({});
 
   const [verify, setVerify] = useState({
@@ -165,40 +161,6 @@ function App() {
       }
     })();
   }, []);
-
-  useEffect(() => {
-    if (!selectedBetId) return;
-    
-    // Check if the bet still exists in ALL bets (not just current match)
-    const bet = bets.find((b) => b.betId.toString() === String(selectedBetId));
-    
-    if (!bet) {
-      // Bet doesn't exist at all - clear selection
-      setSelectedBetId("");
-      setJoinAmount("");
-      return;
-    }
-    
-    // Check if bet is still open (status 0, no joiner, not our own bet)
-    const isBetStillOpen = 
-      bet.status === 0 && 
-      addrEq(bet.teamBBetter, ZERO) && 
-      !addrEq(bet.teamABetter, userAddress);
-    
-    if (!isBetStillOpen) {
-      // Bet is no longer available - clear selection
-      setSelectedBetId("");
-      setJoinAmount("");
-      return;
-    }
-    
-    // Bet is still valid - update the amount
-    try {
-      setJoinAmount(parseFloat(ethers.formatEther(bet.amount)).toString());
-    } catch {
-      /* ignore */
-    }
-  }, [selectedBetId, bets, userAddress]);
 
   useEffect(() => {
     if (!walletConnected || !isContractReady) {
@@ -487,39 +449,26 @@ function App() {
     }
   };
 
-  const handleJoinBet = async () => {
+  const handleJoinBet = async (betId, betAmount, homeGoals, awayGoals) => {
     if (!requirePlayable()) return;
     try {
-      if (!selectedBetId || !joinAmount) {
-        setMessage("Select an open stake and enter the matching amount.");
-        return;
-      }
-      const bet = openBetsOnMatch.find(
-        (b) => b.betId.toString() === String(selectedBetId),
-      );
-      if (!bet) {
-        setMessage("This stake is no longer available.");
-        return;
-      }
-      const home = parseInt(joinHomeGoals, 10);
-      const away = parseInt(joinAwayGoals, 10);
-      if (isNaN(home) || home < 0 || isNaN(away) || away < 0) {
-        setMessage("Enter your score prediction — e.g. 1 and 2.");
-        return;
-      }
       setLoading(true);
       setMessage("Joining stake...");
+      const amountInOkb = parseFloat(ethers.formatEther(betAmount)).toString();
       await joinBet(
-        parseInt(selectedBetId, 10),
-        joinAmount,
-        bet.amount,
-        home,
-        away,
+        parseInt(betId, 10),
+        amountInOkb,
+        betAmount,
+        homeGoals,
+        awayGoals,
       );
       setMessage("You joined the stake. Good luck.");
-      setJoinAmount("");
-      setJoinHomeGoals("");
-      setJoinAwayGoals("");
+      // Clear the join inputs for this bet
+      setResolveInputs((prev) => {
+        const newInputs = { ...prev };
+        delete newInputs[`join_${betId}`];
+        return newInputs;
+      });
       await refreshBets();
       await refreshBalance();
     } catch (error) {
@@ -1157,197 +1106,169 @@ function App() {
           </div>
 
           <div className="sub-block">
-            <h3>Join a stake</h3>
-            <div className="form-group">
-              <label
-                style={{
-                  fontSize: "0.85rem",
-                  color: "var(--text-muted, #aaa)",
-                  marginBottom: "4px",
-                }}
-              >
-                Your score prediction (home – away)
-              </label>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  marginBottom: "8px",
-                }}
-              >
-                <input
-                  type="number"
-                  placeholder="Home"
-                  value={joinHomeGoals}
-                  onChange={(e) => setJoinHomeGoals(e.target.value)}
-                  disabled={loading}
-                  min="0"
-                  max="20"
-                  style={{ width: "72px" }}
-                />
-                <span
-                  style={{
-                    fontSize: "1.2rem",
-                    fontWeight: "bold",
-                    color: "#fff",
-                  }}
-                >
-                  –
-                </span>
-                <input
-                  type="number"
-                  placeholder="Away"
-                  value={joinAwayGoals}
-                  onChange={(e) => setJoinAwayGoals(e.target.value)}
-                  disabled={loading}
-                  min="0"
-                  max="20"
-                  style={{ width: "72px" }}
-                />
-              </div>
-              <select
-                value={selectedBetId}
-                onChange={(e) => setSelectedBetId(e.target.value)}
-                disabled={loading || openBetsOnMatch.length === 0}
-              >
-                <option value="">Select an open stake…</option>
-                {openBetsOnMatch.map((bet) => (
-                  <option key={bet.betId} value={bet.betId}>
-                    #{bet.betId.toString()} · {formatOkb(bet.amount)} ·{" "}
-                    {getDisplayNameForAddress(
-                      userAddress,
-                      bet.teamABetter,
-                      myDisplayName,
-                      serverProfiles,
-                    )}{" "}
-                    predicts {bet.creatorHomeGoals}–{bet.creatorAwayGoals}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                placeholder="Same OKB amount as side A"
-                value={joinAmount}
-                onChange={(e) => setJoinAmount(e.target.value)}
-                disabled={loading}
-                min="0"
-                step="0.01"
-              />
-              <button
-                type="button"
-                onClick={handleJoinBet}
-                disabled={loading || !selectedBetId}
-              >
-                {loading ? "Joining…" : "Join stake"}
-              </button>
-            </div>
-            {openBetsOnMatch.length === 0 && (
-              <p className="text-muted">
-                No open stakes for this match yet. Create one above.
-              </p>
-            )}
-          </div>
-
-          <div className="sub-block">
-            <h3>Active stakes for this match</h3>
+            <h3>Stakes for this match</h3>
             {betsForSelectedMatch.length === 0 ? (
-              <p className="text-muted">No on-chain rows for this title yet.</p>
+              <p className="text-muted">No stakes for this match yet. Create one above.</p>
             ) : (
               <div className="bets-list">
-                {betsForSelectedMatch.map((bet) => (
-                  <div key={bet.betId} className="bet-card">
-                    <h3>Stake #{bet.betId.toString()}</h3>
-                    <div className="bet-details">
-                      <p>
-                        <strong>Amount (each side):</strong>{" "}
-                        {formatOkb(bet.amount)}
-                      </p>
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        {BET_STATUS[Number(bet.status)] ?? "UNKNOWN"}
-                      </p>
-                      <p>
-                        <strong>Side A (creator):</strong>{" "}
-                        {getDisplayNameForAddress(
-                          userAddress,
-                          bet.teamABetter,
-                          myDisplayName,
-                          serverProfiles,
-                        )}
-                        {" — predicts "}
-                        <strong>
-                          {bet.creatorHomeGoals}–{bet.creatorAwayGoals}
-                        </strong>
-                      </p>
-                      <p>
-                        <strong>Side B (joiner):</strong>{" "}
-                        {addrEq(bet.teamBBetter, ZERO) ? (
-                          <em>Waiting for opponent…</em>
-                        ) : (
-                          <>
-                            {getDisplayNameForAddress(
-                              userAddress,
-                              bet.teamBBetter,
-                              myDisplayName,
-                              serverProfiles,
-                            )}
-                            {" — predicts "}
-                            <strong>
-                              {bet.joinerHomeGoals}–{bet.joinerAwayGoals}
-                            </strong>
-                          </>
-                        )}
-                      </p>
-                      {bet.status === 2 && (
+                {betsForSelectedMatch.map((bet) => {
+                  const isOpenBet = bet.status === 0 && addrEq(bet.teamBBetter, ZERO);
+                  const canJoin = isOpenBet && !addrEq(bet.teamABetter, userAddress);
+                  
+                  return (
+                    <div key={bet.betId} className="bet-card">
+                      <h3>Stake #{bet.betId.toString()}</h3>
+                      <div className="bet-details">
                         <p>
-                          <strong>Actual score:</strong>{" "}
-                          <strong style={{ color: "#10b981" }}>
-                            {bet.actualHomeGoals}–{bet.actualAwayGoals}
-                          </strong>
-                          {" — "}
-                          {bet.outcome === 1
-                            ? `${getDisplayNameForAddress(userAddress, bet.teamABetter, myDisplayName, serverProfiles)} wins`
-                            : bet.outcome === 2
-                              ? `${getDisplayNameForAddress(userAddress, bet.teamBBetter, myDisplayName, serverProfiles)} wins`
-                              : "Draw — both refunded"}
+                          <strong>Amount (each side):</strong>{" "}
+                          {formatOkb(bet.amount)}
                         </p>
-                      )}
-                    </div>
-
-                    <div className="bet-actions">
-                      {bet.status === 0 &&
-                        addrEq(bet.teamABetter, userAddress) && (
-                          <button
-                            type="button"
-                            onClick={() => handleCancelBet(bet.betId)}
-                            disabled={loading}
-                          >
-                            Cancel open stake
-                          </button>
-                        )}
-                      {bet.status === 1 && isContractAdmin && (
-                        <div className="resolve-form">
-                          <p
-                            style={{
-                              fontSize: "0.85rem",
-                              color: "var(--text-muted, #aaa)",
-                              marginBottom: "6px",
-                            }}
-                          >
-                            Enter the actual final score to settle:
+                        <p>
+                          <strong>Status:</strong>{" "}
+                          {BET_STATUS[Number(bet.status)] ?? "UNKNOWN"}
+                        </p>
+                        <p>
+                          <strong>Side A (creator):</strong>{" "}
+                          {getDisplayNameForAddress(
+                            userAddress,
+                            bet.teamABetter,
+                            myDisplayName,
+                            serverProfiles,
+                          )}
+                          {" — predicts "}
+                          <strong>
+                            {bet.creatorHomeGoals}–{bet.creatorAwayGoals}
+                          </strong>
+                        </p>
+                        <p>
+                          <strong>Side B (joiner):</strong>{" "}
+                          {addrEq(bet.teamBBetter, ZERO) ? (
+                            <em>Waiting for opponent…</em>
+                          ) : (
+                            <>
+                              {getDisplayNameForAddress(
+                                userAddress,
+                                bet.teamBBetter,
+                                myDisplayName,
+                                serverProfiles,
+                              )}
+                              {" — predicts "}
+                              <strong>
+                                {bet.joinerHomeGoals}–{bet.joinerAwayGoals}
+                              </strong>
+                            </>
+                          )}
+                        </p>
+                        {bet.status === 2 && (
+                          <p>
+                            <strong>Actual score:</strong>{" "}
+                            <strong style={{ color: "#10b981" }}>
+                              {bet.actualHomeGoals}–{bet.actualAwayGoals}
+                            </strong>
+                            {" — "}
+                            {bet.outcome === 1
+                              ? `${getDisplayNameForAddress(userAddress, bet.teamABetter, myDisplayName, serverProfiles)} wins`
+                              : bet.outcome === 2
+                                ? `${getDisplayNameForAddress(userAddress, bet.teamBBetter, myDisplayName, serverProfiles)} wins`
+                                : "Draw — both refunded"}
                           </p>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "8px",
-                              marginBottom: "8px",
-                            }}
-                          >
-                            <input
-                              type="number"
-                              placeholder="Home"
+                        )}
+                      </div>
+
+                      <div className="bet-actions">
+                        {canJoin && (
+                          <div className="join-form">
+                            <p style={{ fontSize: "0.85rem", color: "var(--text-muted, #aaa)", marginBottom: "6px" }}>
+                              Enter your score prediction to join:
+                            </p>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                              <input
+                                type="number"
+                                placeholder="Home"
+                                value={resolveInputs[`join_${bet.betId}`]?.home ?? ""}
+                                onChange={(e) =>
+                                  setResolveInputs((prev) => ({
+                                    ...prev,
+                                    [`join_${bet.betId}`]: {
+                                      ...prev[`join_${bet.betId}`],
+                                      home: e.target.value,
+                                    },
+                                  }))
+                                }
+                                disabled={loading}
+                                min="0"
+                                max="20"
+                                style={{ width: "72px" }}
+                              />
+                              <span style={{ fontSize: "1.2rem", fontWeight: "bold", color: "#fff" }}>–</span>
+                              <input
+                                type="number"
+                                placeholder="Away"
+                                value={resolveInputs[`join_${bet.betId}`]?.away ?? ""}
+                                onChange={(e) =>
+                                  setResolveInputs((prev) => ({
+                                    ...prev,
+                                    [`join_${bet.betId}`]: {
+                                      ...prev[`join_${bet.betId}`],
+                                      away: e.target.value,
+                                    },
+                                  }))
+                                }
+                                disabled={loading}
+                                min="0"
+                                max="20"
+                                style={{ width: "72px" }}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const h = parseInt(resolveInputs[`join_${bet.betId}`]?.home, 10);
+                                const a = parseInt(resolveInputs[`join_${bet.betId}`]?.away, 10);
+                                if (isNaN(h) || h < 0 || isNaN(a) || a < 0) {
+                                  setMessage("Enter your score prediction — e.g. 1 and 2.");
+                                  return;
+                                }
+                                handleJoinBet(bet.betId, bet.amount, h, a);
+                              }}
+                              disabled={loading}
+                            >
+                              {loading ? "Joining…" : `Join stake (${formatOkb(bet.amount)})`}
+                            </button>
+                          </div>
+                        )}
+                        {bet.status === 0 &&
+                          addrEq(bet.teamABetter, userAddress) && (
+                            <button
+                              type="button"
+                              onClick={() => handleCancelBet(bet.betId)}
+                              disabled={loading}
+                            >
+                              Cancel open stake
+                            </button>
+                          )}
+                        {bet.status === 1 && isContractAdmin && (
+                          <div className="resolve-form">
+                            <p
+                              style={{
+                                fontSize: "0.85rem",
+                                color: "var(--text-muted, #aaa)",
+                                marginBottom: "6px",
+                              }}
+                            >
+                              Enter the actual final score to settle:
+                            </p>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                marginBottom: "8px",
+                              }}
+                            >
+                              <input
+                                type="number"
+                                placeholder="Home"
                               value={resolveInputs[bet.betId]?.home ?? ""}
                               onChange={(e) =>
                                 setResolveInputs((prev) => ({
@@ -1424,7 +1345,8 @@ function App() {
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
