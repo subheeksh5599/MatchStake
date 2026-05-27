@@ -471,9 +471,38 @@ function App() {
     try {
       setLoading(true);
       setMessage("Resolving...");
+      
+      // Get the bet details before resolving
+      const bet = bets.find((b) => b.betId.toString() === String(betId));
+      
       await resolveBet(betId, actualHome, actualAway);
-      setMessage("Stake resolved.");
+      
+      // Refresh bets to get the updated outcome
       await refreshBets();
+      
+      // Check if user was involved and show result
+      if (bet && userAddress) {
+        const isTeamA = addrEq(bet.teamABetter, userAddress);
+        const isTeamB = addrEq(bet.teamBBetter, userAddress);
+        
+        if (isTeamA || isTeamB) {
+          // Calculate distances
+          const creatorDist = Math.abs(bet.creatorHomeGoals - actualHome) + Math.abs(bet.creatorAwayGoals - actualAway);
+          const joinerDist = Math.abs(bet.joinerHomeGoals - actualHome) + Math.abs(bet.joinerAwayGoals - actualAway);
+          
+          if (creatorDist === joinerDist) {
+            setMessage("Stake resolved: Draw! Both players refunded.");
+          } else if ((isTeamA && creatorDist < joinerDist) || (isTeamB && joinerDist < creatorDist)) {
+            setMessage("Stake resolved: You won! 🎉");
+          } else {
+            setMessage("Stake resolved: You lost. Better luck next time!");
+          }
+        } else {
+          setMessage("Stake resolved.");
+        }
+      } else {
+        setMessage("Stake resolved.");
+      }
     } catch (error) {
       setMessage(error.message || "Unable to resolve.");
     } finally {
