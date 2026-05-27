@@ -31,7 +31,6 @@ import { fetchAllProfiles, registerProfileOnServer } from "./profileApi";
 import "./App.css";
 
 const BET_STATUS = ["PENDING", "ACTIVE", "RESOLVED", "CANCELLED"];
-const OUTCOMES = ["PENDING", "TEAM_A", "TEAM_B", "DRAW"];
 
 const ZERO = "0x0000000000000000000000000000000000000000";
 
