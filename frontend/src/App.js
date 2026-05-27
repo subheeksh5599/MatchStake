@@ -92,17 +92,6 @@ function App() {
     return bets.filter((b) => matchKey(b.matchName) === key);
   }, [bets, selectedMatch]);
 
-  const openBetsOnMatch = useMemo(
-    () =>
-      betsForSelectedMatch.filter(
-        (bet) =>
-          bet.status === 0 &&
-          addrEq(bet.teamBBetter, ZERO) &&
-          !addrEq(bet.teamABetter, userAddress),
-      ),
-    [betsForSelectedMatch, userAddress],
-  );
-
   const runVerification = useCallback(async () => {
     if (!window.ethereum) return;
     try {
