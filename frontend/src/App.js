@@ -169,21 +169,37 @@ function App() {
 
   useEffect(() => {
     if (!selectedBetId) return;
-    const bet = openBetsOnMatch.find(
-      (b) => b.betId.toString() === String(selectedBetId),
-    );
-    if (bet) {
-      try {
-        setJoinAmount(parseFloat(ethers.formatEther(bet.amount)).toString());
-      } catch {
-        /* ignore */
-      }
-    } else {
-      // If the selected bet is no longer available, clear the selection
+    
+    // Check if the bet still exists in ALL bets (not just current match)
+    const bet = bets.find((b) => b.betId.toString() === String(selectedBetId));
+    
+    if (!bet) {
+      // Bet doesn't exist at all - clear selection
       setSelectedBetId("");
       setJoinAmount("");
+      return;
     }
-  }, [selectedBetId, openBetsOnMatch]);
+    
+    // Check if bet is still open (status 0, no joiner, not our own bet)
+    const isBetStillOpen = 
+      bet.status === 0 && 
+      addrEq(bet.teamBBetter, ZERO) && 
+      !addrEq(bet.teamABetter, userAddress);
+    
+    if (!isBetStillOpen) {
+      // Bet is no longer available - clear selection
+      setSelectedBetId("");
+      setJoinAmount("");
+      return;
+    }
+    
+    // Bet is still valid - update the amount
+    try {
+      setJoinAmount(parseFloat(ethers.formatEther(bet.amount)).toString());
+    } catch {
+      /* ignore */
+    }
+  }, [selectedBetId, bets, userAddress]);
 
   useEffect(() => {
     if (!walletConnected || !isContractReady) {
