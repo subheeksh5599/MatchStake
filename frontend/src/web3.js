@@ -324,8 +324,10 @@ export const createBet = async (
       },
     );
 
+    console.log("Transaction hash:", tx.hash);
     const receipt = await tx.wait();
-    return receipt;
+    console.log("Transaction confirmed in block:", receipt.blockNumber);
+    return { receipt, txHash: tx.hash };
   } catch (error) {
     console.error("Error creating bet:", error);
     throw new Error(normalizeWeb3Error(error));
@@ -357,8 +359,10 @@ export const joinBet = async (
       value: amountInWei,
     });
 
+    console.log("Transaction hash:", tx.hash);
     const receipt = await tx.wait();
-    return receipt;
+    console.log("Transaction confirmed in block:", receipt.blockNumber);
+    return { receipt, txHash: tx.hash };
   } catch (error) {
     console.error("Error joining bet:", error);
     throw new Error(normalizeWeb3Error(error));
@@ -369,8 +373,10 @@ export const resolveBet = async (betId, actualHome, actualAway) => {
   try {
     const contract = getContract();
     const tx = await contract.resolveBet(betId, actualHome, actualAway);
+    console.log("Transaction hash:", tx.hash);
     const receipt = await tx.wait();
-    return receipt;
+    console.log("Transaction confirmed in block:", receipt.blockNumber);
+    return { receipt, txHash: tx.hash };
   } catch (error) {
     console.error("Error resolving bet:", error);
     throw new Error(normalizeWeb3Error(error));
@@ -381,8 +387,10 @@ export const cancelBet = async (betId) => {
   try {
     const contract = getContract();
     const tx = await contract.cancelBet(betId);
+    console.log("Transaction hash:", tx.hash);
     const receipt = await tx.wait();
-    return receipt;
+    console.log("Transaction confirmed in block:", receipt.blockNumber);
+    return { receipt, txHash: tx.hash };
   } catch (error) {
     console.error("Error cancelling bet:", error);
     throw new Error(normalizeWeb3Error(error));
