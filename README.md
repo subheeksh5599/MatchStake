@@ -145,9 +145,9 @@ npm test
 
 ## 🔍 Contract on X Layer Explorer
 
-- **Contract Address:** `0x85C2dB87F93827a057838b788D28B89dA4fD8c19`
+- **Contract Address:** `0xA70f5DA769D86E8C686f8E3bB1Ea75aE96449138`
 - **Network:** X Layer Testnet (Chain ID: 1952)
-- **Explorer:** [View on X Layer Testnet Explorer](https://www.okx.com/explorer/xlayer-test/address/0x85C2dB87F93827a057838b788D28B89dA4fD8c19)
+- **Explorer:** [View on X Layer Testnet Explorer](https://www.okx.com/explorer/xlayer-test/address/0xA70f5DA769D86E8C686f8E3bB1Ea75aE96449138)
 
 ## � Eventsm
 
